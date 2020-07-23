@@ -5,8 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="primehub_job",
-    version="0.0.3",
+    version="0.0.4",
     description="Submit PrimeHub jobs easier",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     packages=setuptools.find_packages(),
     license='Apache License 2.0',
     classifiers=[

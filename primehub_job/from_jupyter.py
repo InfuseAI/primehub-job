@@ -4,6 +4,7 @@ import requests
 import inspect
 import shelve
 import time
+from functools import wraps
 from types import ModuleType
 from datetime import datetime
 from cloudpickle import CloudPickler
@@ -29,7 +30,7 @@ for key in data_in_shelve:
     if key != 'os_env':
         globals()[key] = data_in_shelve[key]
 
-result = {}(*args, **kwargs)
+result = {}.__wrapped__(*args, **kwargs)
 data_in_shelve.close()
 
 import os.path
@@ -114,6 +115,7 @@ def get_phjob_folder_path(job_id):
 
 def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTANCE_TYPE'], image=os.environ['IMAGE_NAME']):
     def decorator(func):
+        @wraps(func)
         def warp(*args, **kwargs):
             group_volume_name = __get_group_volume_name()
             group_id = os.environ['GROUP_ID']
@@ -134,14 +136,13 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             global_keys = func.__globals__.keys()
             global_vars = func.__globals__
             for key in global_keys:
-                if not key.startswith('_') and not key in ['In', 'Out', 'exit', 'quit', 'get_ipython'] and key != func.__name__:
+                if not key.startswith('_') and not key in ['In', 'Out', 'exit', 'quit', 'get_ipython']:
                     if isinstance(global_vars[key], ModuleType) or type(global_vars[key]).__name__ in ['module', 'type', 'function']:
                         data_for_shelve[key] = global_vars[key]
             data_for_shelve['os_env'] = os.environ
             data_for_shelve.close()
             
-            function_code = 'def ' + inspect.getsource(func).split('def ')[1]
-            execute_code = function_code + code_to_inject.format(func.__name__, code_folder)
+            execute_code = code_to_inject.format(func.__name__, code_folder)
             
             with open(os.path.join(code_folder, 'main.py'), 'w') as tmp:
                 tmp.writelines(execute_code)

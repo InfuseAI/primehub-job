@@ -18,9 +18,17 @@ if 'PRIMEHUB_DOMAIN_NAME' in os.environ:
 code_to_inject = \
 """
 import shelve
+import os
 data_in_shelve = shelve.open('shelve_in.dat')
+
+for env_key in data_in_shelve['os_env'].keys():
+    if env_key not in os.environ:
+        os.environ[env_key] = data_in_shelve['os_env'][env_key]
+
 for key in data_in_shelve:
-    globals()[key] = data_in_shelve[key]
+    if key != 'os_env':
+        globals()[key] = data_in_shelve[key]
+
 result = {}(*args, **kwargs)
 data_in_shelve.close()
 
@@ -79,10 +87,27 @@ def __get_phjob_status(job_id):
     job_status = __post_api_graphql(query, variables).json()['data']['phJob']
     return job_status
 
-def __get_phjob_user_folder_path():
+def __get_group_volume_name():
     group_name = os.environ['GROUP_NAME']
-    user_folder = '/home/jovyan/' + group_name + '/phjobs/' + os.environ['JUPYTERHUB_USER']
+    return group_name.lower().replace('_', '-')
+
+def __get_phjob_user_folder_path():
+    group_volume_name = __get_group_volume_name()
+    user_folder = '/home/jovyan/' + group_volume_name + '/phjobs/' + os.environ['JUPYTERHUB_USER']
     return user_folder
+
+def __check_and_install_primehub_job_code(code_folder):
+    check_and_install_code = \
+"""
+try:
+    import primehub_job
+except:
+    import sys
+    import subprocess
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', 'primehub_job'])
+"""
+    with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
+        tmp.writelines(check_and_install_code)
 
 def get_phjob_folder_path(job_id):
     return os.path.join(__get_phjob_user_folder_path(), job_id)
@@ -90,10 +115,10 @@ def get_phjob_folder_path(job_id):
 def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTANCE_TYPE'], image=os.environ['IMAGE_NAME']):
     def decorator(func):
         def warp(*args, **kwargs):
-            group_name = os.environ['GROUP_NAME']
+            group_volume_name = __get_group_volume_name()
             group_id = os.environ['GROUP_ID']
             
-            if not os.path.exists('/home/jovyan/' + group_name):
+            if not os.path.exists('/home/jovyan/' + group_volume_name):
                 raise RuntimeWarning('You must have a group shared volume folder.')
             user_folder = __get_phjob_user_folder_path()
             if not os.path.exists(user_folder):
@@ -109,9 +134,10 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             global_keys = func.__globals__.keys()
             global_vars = func.__globals__
             for key in global_keys:
-                if not key.startswith('_') and not key in ['In', 'Out', 'exit', 'quit', 'get_ipython', 'submit_phjob', 'get_phjob_result', 'wait_and_get_phjob_result', 'get_phjob_logs', 'get_phjob_folder_path'] and key != func.__name__:
+                if not key.startswith('_') and not key in ['In', 'Out', 'exit', 'quit', 'get_ipython'] and key != func.__name__:
                     if isinstance(global_vars[key], ModuleType) or type(global_vars[key]).__name__ in ['module', 'type', 'function']:
                         data_for_shelve[key] = global_vars[key]
+            data_for_shelve['os_env'] = os.environ
             data_for_shelve.close()
             
             function_code = 'def ' + inspect.getsource(func).split('def ')[1]
@@ -119,7 +145,9 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             
             with open(os.path.join(code_folder, 'main.py'), 'w') as tmp:
                 tmp.writelines(execute_code)
-                
+            
+            __check_and_install_primehub_job_code(code_folder)
+
             variables = '''{{
                                 "data": {{
                                     "instanceType": "{}",
@@ -128,7 +156,7 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
                                     "displayName": "{}",
                                     "command": "{}"
                                 }}
-                            }}'''.format(instance_type, group_id, image, name, "cd " + code_folder + "; python main.py")
+                            }}'''.format(instance_type, group_id, image, name, "cd " + code_folder + "; python check_and_install_primehub_job.py; python main.py")
             query = '''mutation ($data: PhJobCreateInput!) {
                             createPhJob(data: $data) {
                                 id

@@ -12,11 +12,20 @@ from cloudpickle import CloudPickler
 # MUST: API_TOKEN, GROUP_ID, GROUP_NAME, JUPYTERHUB_USER, INSTANCE_TYPE, IMAGE_NAME
 # OPTIONAL: PRIMEHUB_DOMAIN_NAME
 
+REQUIRED_ENVS = ['API_TOKEN', 'GROUP_ID', 'GROUP_NAME', 'JUPYTERHUB_USER', 'INSTANCE_TYPE', 'IMAGE_NAME']
+
+def __check_env_requirements(keys):
+    for key in keys:
+        if key not in os.environ:
+            raise RuntimeError('You must set your {} environment variable.'.format(key))
+
+__check_env_requirements(REQUIRED_ENVS)
+
 PRIMEHUB_DOMAIN_NAME = 'primehub-graphql.hub.svc.cluster.local'
 if 'PRIMEHUB_DOMAIN_NAME' in os.environ:
     PRIMEHUB_DOMAIN_NAME = os.environ['PRIMEHUB_DOMAIN_NAME']
 
-code_to_inject = \
+CODE_TO_INJECT = \
 """
 import shelve
 import os
@@ -44,12 +53,21 @@ except:
     raise RuntimeError("The return value cannot be serialized. If you are going to return a model, please use the framework's saver to save model into file and return the saved path in the function.")
 """
 
+def __check_and_install_primehub_job_code(code_folder):
+    check_and_install_code = \
+"""
+try:
+    import primehub_job
+except:
+    import sys
+    import subprocess
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', 'primehub_job'])
+"""
+    with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
+        tmp.writelines(check_and_install_code)
+
 def __post_api_graphql(query, variables):
     url = 'http://{}/api/graphql'.format(PRIMEHUB_DOMAIN_NAME)
-    
-    if not 'API_TOKEN' in os.environ:
-        raise RuntimeWarning('You must set your API TOKEN in the API_TOKEN environment variable.')
-        
     post_data = {
         'variables': variables,
         'query': query
@@ -57,16 +75,54 @@ def __post_api_graphql(query, variables):
     response = requests.post(url, data=post_data, headers={'authorization': 'Bearer ' + os.environ['API_TOKEN']})
     return response
 
-def __get_api_phjob_logs(job_id, tail_lines=2000):
-    url = 'http://{}/api/logs/namespaces/hub/phjobs/{}?tailLines={}'.format(PRIMEHUB_DOMAIN_NAME, job_id, tail_lines)
-    
-    if not 'API_TOKEN' in os.environ:
-        raise RuntimeWarning('You must set your API TOKEN in the API_TOKEN environment variable.')
-    
-    response = requests.get(url, headers={'authorization': 'Bearer ' + os.environ['API_TOKEN']})
-    return response
-    
-def __get_phjob_status(job_id):
+def __get_group_volume_name():
+    group_name = os.environ['GROUP_NAME']
+    return group_name.lower().replace('_', '-')
+
+def __get_phjob_user_folder_path():
+    group_volume_name = __get_group_volume_name()
+    user_folder = '/home/jovyan/' + group_volume_name + '/phjobs/' + os.environ['JUPYTERHUB_USER']
+    return user_folder
+
+def __create_phjob(name, group_id, instance_type, image, command):
+    variables = '''{{
+                    "data": {{
+                        "instanceType": "{}",
+                        "groupId": "{}",
+                        "image": "{}",
+                        "displayName": "{}",
+                        "command": "{}"
+                    }}
+                }}'''.format(instance_type, group_id, image, name, command)
+    query = '''mutation ($data: PhJobCreateInput!) {
+                    createPhJob(data: $data) {
+                        id
+                    }
+                }'''
+    create_job_result = __post_api_graphql(query, variables)
+    try:
+        create_job_result = create_job_result.json()
+        job_id = create_job_result['data']['createPhJob']['id']
+    except Exception as e:
+        print("Job creation failed due to: {}".format(e))
+        print("Please check your API token and instance type name are correct.")
+        if create_job_result:
+            print("The server response is: ")
+            print(create_job_result)
+        raise RuntimeError("Job creation failed")
+
+    return job_id
+
+def __get_function_return(job_id):
+    data_in_shelve = shelve.open(os.path.join(get_phjob_folder_path(job_id), 'shelve_out.dat'))
+    if 'result' not in data_in_shelve:
+        raise RuntimeError('We cannot find the return value. Your job might not execute correctly.')
+    else:
+        return data_in_shelve['result']
+
+def get_phjob(job_id):
+    if len(job_id) <= 0:
+        raise RuntimeError("Job id length must longer than 0")
     query = '''
         query ($where: PhJobWhereUniqueInput!) {
           phJob(where: $where) {
@@ -85,30 +141,18 @@ def __get_phjob_status(job_id):
           }}
         }}
     '''.format(job_id)
-    job_status = __post_api_graphql(query, variables).json()['data']['phJob']
-    return job_status
-
-def __get_group_volume_name():
-    group_name = os.environ['GROUP_NAME']
-    return group_name.lower().replace('_', '-')
-
-def __get_phjob_user_folder_path():
-    group_volume_name = __get_group_volume_name()
-    user_folder = '/home/jovyan/' + group_volume_name + '/phjobs/' + os.environ['JUPYTERHUB_USER']
-    return user_folder
-
-def __check_and_install_primehub_job_code(code_folder):
-    check_and_install_code = \
-"""
-try:
-    import primehub_job
-except:
-    import sys
-    import subprocess
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', 'primehub_job'])
-"""
-    with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
-        tmp.writelines(check_and_install_code)
+    get_job_result = __post_api_graphql(query, variables)
+    try:
+        get_job_result = get_job_result.json()
+        job_info = get_job_result['data']['phJob']
+    except Exception as e:
+        print("Get job info failed due to: {}".format(e))
+        print("Please check your API token and job id are correct.")
+        if get_job_result:
+            print("The server response is: ")
+            print(get_job_result)
+        raise RuntimeError("Get job info failed")
+    return job_info
 
 def get_phjob_folder_path(job_id):
     return os.path.join(__get_phjob_user_folder_path(), job_id)
@@ -121,7 +165,7 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             group_id = os.environ['GROUP_ID']
             
             if not os.path.exists('/home/jovyan/' + group_volume_name):
-                raise RuntimeWarning('You must have a group shared volume folder.')
+                raise RuntimeError('You must have a group shared volume folder.')
             user_folder = __get_phjob_user_folder_path()
             if not os.path.exists(user_folder):
                 os.makedirs(user_folder)
@@ -142,40 +186,24 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             data_for_shelve['os_env'] = os.environ
             data_for_shelve.close()
             
-            execute_code = code_to_inject.format(func.__name__, code_folder)
+            execute_code = CODE_TO_INJECT.format(func.__name__, code_folder)
             
             with open(os.path.join(code_folder, 'main.py'), 'w') as tmp:
                 tmp.writelines(execute_code)
             
             __check_and_install_primehub_job_code(code_folder)
 
-            variables = '''{{
-                                "data": {{
-                                    "instanceType": "{}",
-                                    "groupId": "{}",
-                                    "image": "{}",
-                                    "displayName": "{}",
-                                    "command": "{}"
-                                }}
-                            }}'''.format(instance_type, group_id, image, name, "cd " + code_folder + "; python check_and_install_primehub_job.py; python main.py")
-            query = '''mutation ($data: PhJobCreateInput!) {
-                            createPhJob(data: $data) {
-                                id
-                            }
-                        }'''
-            create_job_result = __post_api_graphql(query, variables)
-            job_id = create_job_result.json()['data']['createPhJob']['id']
+            job_id = __create_phjob(name, group_id, instance_type, image, "cd " + code_folder + "; python check_and_install_primehub_job.py; python main.py")
             os.symlink(code_folder, os.path.join(user_folder, job_id))
-            
             return job_id
+            
         return warp
     return decorator
 
 def get_phjob_result(job_id):
-    job_status = __get_phjob_status(job_id)
+    job_status = get_phjob(job_id)
     if job_status['phase'] == 'Succeeded':
-        data_in_shelve = shelve.open(os.path.join(get_phjob_folder_path(job_id), 'shelve_out.dat'))
-        return data_in_shelve['result']
+        return __get_function_return(job_id)
     else:
         print("The job is {}. (Reason: {}, Message: {})".format(job_status['phase'], job_status['reason'], job_status['message']))
 
@@ -186,10 +214,9 @@ def wait_and_get_phjob_result(job_id):
     last_message = ''
     
     while True:
-        job_status = __get_phjob_status(job_id)
+        job_status = get_phjob(job_id)
         if job_status['phase'] == 'Succeeded':
-            data_in_shelve = shelve.open(os.path.join(get_phjob_folder_path(job_id), 'shelve_out.dat'))
-            return data_in_shelve['result']
+            return __get_function_return(job_id)
         else:
             if last_phase != job_status['phase'] or last_reason != job_status['reason'] or last_message != job_status['message']:
                 print("The job is {}. (Reason: {}, Message: {})".format(job_status['phase'], job_status['reason'], job_status['message']))
@@ -204,5 +231,6 @@ def wait_and_get_phjob_result(job_id):
             time.sleep(30)
 
 def get_phjob_logs(job_id, tail_lines=2000):
-    response = __get_api_phjob_logs(job_id, tail_lines)
+    url = 'http://{}/api/logs/namespaces/hub/phjobs/{}?tailLines={}'.format(PRIMEHUB_DOMAIN_NAME, job_id, tail_lines)
+    response = requests.get(url, headers={'authorization': 'Bearer ' + os.environ['API_TOKEN']})
     return response.text

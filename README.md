@@ -80,3 +80,9 @@ job_id = training()
 # load trained model
 model = tf.keras.models.load_model(get_phjob_folder_path(job_id) + '/' + wait_and_get_phjob_result(job_id))
 ``` 
+
+### Run the Tests
+
+```
+python -m pytest
+```

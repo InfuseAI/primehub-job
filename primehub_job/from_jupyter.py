@@ -61,7 +61,7 @@ try:
 except:
     import sys
     import subprocess
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--user', 'primehub_job'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'primehub_job'])
 """
     with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
         tmp.writelines(check_and_install_code)

@@ -137,6 +137,8 @@ def get_phjob(job_id):
         query ($where: PhJobWhereUniqueInput!) {
           phJob(where: $where) {
             id
+            startTime
+            finishTime
             displayName
             phase
             reason
@@ -216,6 +218,7 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
 def get_phjob_result(job_id):
     job_status = get_phjob(job_id)
     if job_status['phase'] == 'Succeeded':
+        get_view_by_id(job_id).show(job_status)
         return __get_function_return(job_id)
     else:
         get_view_by_id(job_id).show(job_status)
@@ -229,6 +232,7 @@ def wait_and_get_phjob_result(job_id):
     while True:
         job_status = get_phjob(job_id)
         if job_status['phase'] == 'Succeeded':
+            get_view_by_id(job_id).show(job_status)
             return __get_function_return(job_id)
         else:
             if last_phase != job_status['phase'] or last_reason != job_status['reason'] or last_message != job_status['message']:

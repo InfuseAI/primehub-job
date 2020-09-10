@@ -1,0 +1,4 @@
+pytest
+requests
+cloudpickle
+ipywidgets==7.5.1

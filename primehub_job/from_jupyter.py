@@ -11,13 +11,16 @@ from cloudpickle import CloudPickler
 
 # MUST: API_TOKEN, GROUP_ID, GROUP_NAME, JUPYTERHUB_USER, INSTANCE_TYPE, IMAGE_NAME
 # OPTIONAL: PRIMEHUB_DOMAIN_NAME
+from primehub_job.view import get_view_by_id
 
 REQUIRED_ENVS = ['API_TOKEN', 'GROUP_ID', 'GROUP_NAME', 'JUPYTERHUB_USER', 'INSTANCE_TYPE', 'IMAGE_NAME']
+
 
 def __check_env_requirements(keys):
     for key in keys:
         if key not in os.environ:
             raise RuntimeError('You must set your {} environment variable.'.format(key))
+
 
 __check_env_requirements(REQUIRED_ENVS)
 
@@ -53,6 +56,7 @@ except:
     raise RuntimeError("The return value cannot be serialized. If you are going to return a model, please use the framework's saver to save model into file and return the saved path in the function.")
 """
 
+
 def __check_and_install_primehub_job_code(code_folder):
     check_and_install_code = \
 """
@@ -66,6 +70,7 @@ except:
     with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
         tmp.writelines(check_and_install_code)
 
+
 def __post_api_graphql(query, variables):
     url = 'http://{}/api/graphql'.format(PRIMEHUB_DOMAIN_NAME)
     post_data = {
@@ -75,14 +80,17 @@ def __post_api_graphql(query, variables):
     response = requests.post(url, data=post_data, headers={'authorization': 'Bearer ' + os.environ['API_TOKEN']})
     return response
 
+
 def __get_group_volume_name():
     group_name = os.environ['GROUP_NAME']
     return group_name.lower().replace('_', '-')
+
 
 def __get_phjob_user_folder_path():
     group_volume_name = __get_group_volume_name()
     user_folder = '/home/jovyan/' + group_volume_name + '/phjobs/' + os.environ['JUPYTERHUB_USER']
     return user_folder
+
 
 def __create_phjob(name, group_id, instance_type, image, command):
     variables = '''{{
@@ -113,12 +121,14 @@ def __create_phjob(name, group_id, instance_type, image, command):
 
     return job_id
 
+
 def __get_function_return(job_id):
     data_in_shelve = shelve.open(os.path.join(get_phjob_folder_path(job_id), 'shelve_out.dat'))
     if 'result' not in data_in_shelve:
         raise RuntimeError('We cannot find the return value. Your job might not execute correctly.')
     else:
         return data_in_shelve['result']
+
 
 def get_phjob(job_id):
     if len(job_id) <= 0:
@@ -127,6 +137,8 @@ def get_phjob(job_id):
         query ($where: PhJobWhereUniqueInput!) {
           phJob(where: $where) {
             id
+            startTime
+            finishTime
             displayName
             phase
             reason
@@ -154,8 +166,10 @@ def get_phjob(job_id):
         raise RuntimeError("Get job info failed")
     return job_info
 
+
 def get_phjob_folder_path(job_id):
     return os.path.join(__get_phjob_user_folder_path(), job_id)
+
 
 def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTANCE_TYPE'], image=os.environ['IMAGE_NAME']):
     def decorator(func):
@@ -200,12 +214,14 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
         return warp
     return decorator
 
+
 def get_phjob_result(job_id):
     job_status = get_phjob(job_id)
     if job_status['phase'] == 'Succeeded':
+        get_view_by_id(job_id).show(job_status)
         return __get_function_return(job_id)
     else:
-        print("The job is {}. (Reason: {}, Message: {})".format(job_status['phase'], job_status['reason'], job_status['message']))
+        get_view_by_id(job_id).show(job_status)
 
         
 def wait_and_get_phjob_result(job_id):
@@ -216,10 +232,11 @@ def wait_and_get_phjob_result(job_id):
     while True:
         job_status = get_phjob(job_id)
         if job_status['phase'] == 'Succeeded':
+            get_view_by_id(job_id).show(job_status)
             return __get_function_return(job_id)
         else:
             if last_phase != job_status['phase'] or last_reason != job_status['reason'] or last_message != job_status['message']:
-                print("The job is {}. (Reason: {}, Message: {})".format(job_status['phase'], job_status['reason'], job_status['message']))
+                get_view_by_id(job_id).show(job_status)
                 last_phase = job_status['phase']
                 last_reason = job_status['reason']
                 last_message = job_status['message']
@@ -229,6 +246,7 @@ def wait_and_get_phjob_result(job_id):
             time.sleep(10)
         else:
             time.sleep(30)
+
 
 def get_phjob_logs(job_id, tail_lines=2000):
     url = 'http://{}/api/logs/namespaces/hub/phjobs/{}?tailLines={}'.format(PRIMEHUB_DOMAIN_NAME, job_id, tail_lines)

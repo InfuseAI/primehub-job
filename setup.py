@@ -17,5 +17,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3',
-    install_requires=['cloudpickle'],
+    install_requires=['cloudpickle', 'requests', 'ipywidgets'],
+
 )

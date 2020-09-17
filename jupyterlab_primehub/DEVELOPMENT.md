@@ -40,6 +40,19 @@ jlpm run build
 jupyter labextension install .
 ```
 
+### Install serverextension
+
+Install 
+
+```
+pip install .
+```
+
+Enable serverextension
+
+```
+jupyter serverextension enable jupyterlab_primehub
+```
 
 ### Update and run
 

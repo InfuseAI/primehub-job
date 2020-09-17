@@ -41,3 +41,7 @@ def setup_handlers(web_app):
 
     for h in handlers:
         print(h)
+
+    import os
+    for k, v in os.environ.items():
+        print("env:", k, v)

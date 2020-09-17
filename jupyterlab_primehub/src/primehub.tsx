@@ -11,6 +11,7 @@ import { Widget } from '@lumino/widgets';
 import React from 'react';
 
 import { Dialog, showDialog } from '@jupyterlab/apputils';
+import { requestAPI } from './jupyterlab-primehub';
 
 export class PrimeHubDropdownList extends ReactWidget {
 
@@ -33,19 +34,28 @@ export class PrimeHubDropdownList extends ReactWidget {
     };
 
     showSubmitJObDialog = (): void => {
-        showDialog({
-            title: 'Submit Notebook as Job',
-            body: new JobInfoInput(),
-            buttons: [Dialog.cancelButton(), Dialog.okButton({label: 'Submit'})]
-        }).then((result) => {
-            console.log(result);
-            if (result.button.label === "Cancel")
-                return;
-            //if (result.value.jobName.length === 0)
-            //    console.log('empty job name');
-            if (result.button.accept)
-                this.submitNotebook(result.value);
+
+        requestAPI<any>('resources', 'POST', 
+            {
+                'api_token': this.getApiToken()
+            }
+        ).then((group_info)=>{
+            showDialog({
+                title: 'Submit Notebook as Job',
+                body: new JobInfoInput(group_info),
+                buttons: [Dialog.cancelButton(), Dialog.okButton({label: 'Submit'})]
+            }).then((result) => {
+                console.log(result);
+                if (result.button.label === "Cancel")
+                    return;
+                //if (result.value.jobName.length === 0)
+                //    console.log('empty job name');
+                if (result.button.accept)
+                    this.submitNotebook(result.value);
+            });
         });
+
+
     }
 
     showUpdateApiTokenDialog = (): void => {
@@ -119,8 +129,11 @@ export class ApiTokenInput extends Widget {
 }
 
 export class JobInfoInput extends Widget {
-    constructor() {
+    constructor(group_info:any) {
         super();
+        // TODO use group_info to build JobSubmit UI
+        console.log('here is group info:');
+        console.log(group_info);
 
         this.itLabel = document.createElement('label');
         this.itLabel.innerHTML = '* Instance Type';

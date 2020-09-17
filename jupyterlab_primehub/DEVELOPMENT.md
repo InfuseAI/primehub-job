@@ -62,6 +62,14 @@ Open another terminal and watch changes same directorty
 jupyter lab --watch
 ```
 
+If you want to use serverextension to query graphql
+
+```
+PRIMEHUB_DOMAIN_NAME=hub.xxx.aws.primehub.io \
+API_TOKEN=xxxxx \
+jupyter lab --watch
+```
+
 In the originial terminal, rebuild and wait for updated
 
 ```

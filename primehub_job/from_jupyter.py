@@ -10,7 +10,7 @@ from datetime import datetime
 from cloudpickle import CloudPickler
 
 # MUST: API_TOKEN, GROUP_ID, GROUP_NAME, JUPYTERHUB_USER, INSTANCE_TYPE, IMAGE_NAME
-# OPTIONAL: PRIMEHUB_DOMAIN_NAME
+from primehub_job.utils import PRIMEHUB_DOMAIN_NAME, __post_api_graphql
 from primehub_job.view import get_view_by_id
 
 REQUIRED_ENVS = ['API_TOKEN', 'GROUP_ID', 'GROUP_NAME', 'JUPYTERHUB_USER', 'INSTANCE_TYPE', 'IMAGE_NAME']
@@ -24,9 +24,6 @@ def __check_env_requirements(keys):
 
 __check_env_requirements(REQUIRED_ENVS)
 
-PRIMEHUB_DOMAIN_NAME = 'primehub-graphql.hub.svc.cluster.local'
-if 'PRIMEHUB_DOMAIN_NAME' in os.environ:
-    PRIMEHUB_DOMAIN_NAME = os.environ['PRIMEHUB_DOMAIN_NAME']
 
 CODE_TO_INJECT = \
 """
@@ -69,16 +66,6 @@ except:
 """
     with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
         tmp.writelines(check_and_install_code)
-
-
-def __post_api_graphql(query, variables):
-    url = 'http://{}/api/graphql'.format(PRIMEHUB_DOMAIN_NAME)
-    post_data = {
-        'variables': variables,
-        'query': query
-    }
-    response = requests.post(url, data=post_data, headers={'authorization': 'Bearer ' + os.environ['API_TOKEN']})
-    return response
 
 
 def __get_group_volume_name():

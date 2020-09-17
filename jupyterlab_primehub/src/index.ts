@@ -18,8 +18,6 @@ import {
   PrimeHubDropdownList
 } from './primehub'
 
-import { requestAPI } from './jupyterlab-primehub'; 
-
 const plugin: JupyterFrontEndPlugin<void> = {
   activate,
   id: 'jupyterlab-primehub',
@@ -42,21 +40,7 @@ class PrimeHubExtenstion implements DocumentRegistry.IWidgetExtension<NotebookPa
  */
 function activate(app: JupyterFrontEnd) {
   app.docRegistry.addWidgetExtension('Notebook', new PrimeHubExtenstion());
-  getValueFromServer();
 };
-
-function getValueFromServer() {
-  requestAPI<any>('get_example')
-  .then(data => {
-    console.log('serverextension example');
-    console.log(data);
-  })
-  .catch(reason => {
-    console.error(
-      `The jupyterlab_primehub server extension appears to be missing.\n${reason}`
-    );
-  });
-}
 
 /**
  * Export the plugin as default.

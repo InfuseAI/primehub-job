@@ -12,6 +12,8 @@ import React from 'react';
 
 import { Dialog, showDialog } from '@jupyterlab/apputils';
 
+import { requestAPI } from './jupyterlab-primehub'; 
+
 export class PrimeHubDropdownList extends ReactWidget {
 
     constructor() {

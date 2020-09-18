@@ -65,8 +65,8 @@ jupyter lab --watch
 If you want to use serverextension to query graphql
 
 ```
-PRIMEHUB_DOMAIN_NAME=hub.xxx.aws.primehub.io \
-API_TOKEN=xxxxx \
+JUPYTERLAB_DEV_API_ENDPOINT=http://hub.xxx.aws.primehub.io \
+GROUP_ID=xxxxx \
 jupyter lab --watch
 ```
 

@@ -3,22 +3,14 @@ import json
 from jupyterlab.labapp import LabApp
 from notebook.base.handlers import APIHandler
 from notebook.utils import url_path_join
-from primehub_job.utils import get_group_info
 import tornado
-from .api import group_info
+from .api import group_info, submit_job
 import os.path
 
 ENV_API_ENDPOINT = 'JUPYTERLAB_DEV_API_ENDPOINT'
 
 NAMESPACE = "jupyterlab-primehub"
 api_endpoint = 'http://primehub-graphql.hub.svc.cluster.local/api/graphql'
-
-
-class RouteHandler(APIHandler):
-
-    @tornado.web.authenticated
-    def get(self, group_id):
-        self.finish(json.dumps(get_group_info(group_id)))
 
 
 class ResourceHandler(APIHandler):
@@ -30,6 +22,20 @@ class ResourceHandler(APIHandler):
         group_id = os.environ.get('GROUP_ID')
         self.log.info('group_info with group_id: {}'.format(group_id))
         self.finish(json.dumps(group_info(api_endpoint, api_token, group_id)))
+
+class SubmitJobHandler(APIHandler):
+
+    @tornado.web.authenticated
+    def post(self):
+        params = self.get_json_body()
+        api_token = params.get('api_token', None)
+        name = params.get('name', 'notebook_job')
+        group_id = os.environ.get('GROUP_ID')
+        instance_type = params.get('instance_type', None)
+        image = params.get('image', os.environ.get('IMAGE_NAME'))
+        command = params.get('command', None)
+        self.log.info('group_info with group_id: {}'.format(group_id))
+        self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command)))
 
 
 def url_pattern(web_app, endpoint, *pieces):
@@ -43,8 +49,8 @@ def setup_handlers(lab_app: LabApp):
 
     host_pattern = ".*$"
 
-    handlers = [(url_pattern(web_app, "get_group_info", "([^/]+)"), RouteHandler),
-                (url_pattern(web_app, 'resources'), ResourceHandler),
+    handlers = [(url_pattern(web_app, 'resources'), ResourceHandler),
+                (url_pattern(web_app, 'submit-job'), SubmitJobHandler),
                 ]
 
     web_app.add_handlers(host_pattern, handlers)

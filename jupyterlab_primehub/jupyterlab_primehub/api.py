@@ -51,3 +51,37 @@ def group_info(api_endpoint, api_token, group_id):
 
     return {}
 
+def submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command):
+    variables = '''{{
+                    "data": {{
+                        "instanceType": "{}",
+                        "groupId": "{}",
+                        "image": "{}",
+                        "displayName": "{}",
+                        "command": "{}"
+                    }}
+                }}'''.format(instance_type, group_id, image, name, command)
+    query = '''mutation ($data: PhJobCreateInput!) {
+                    createPhJob(data: $data) {
+                        id
+                    }
+                }'''
+    create_job_result = fetch_from_graphql(api_endpoint, api_token, query, variables)
+    try:
+        job_id = create_job_result['data']['createPhJob']['id']
+    except Exception as e:
+        print("Job creation failed due to: {}".format(e))
+        print("Please check your API token and instance type name are correct.")
+        if create_job_result:
+            print("The server response is: ")
+            print(create_job_result)
+        return {
+            'status': 'failed',
+            'error': e,
+            'server_response': create_job_result
+        }
+
+    return {
+        'status': 'success',
+        'job_id': job_id
+    }

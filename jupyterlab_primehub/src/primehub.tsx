@@ -71,8 +71,17 @@ export class PrimeHubDropdownList extends ReactWidget {
     }
     
     submitNotebook = (value: any): void => {
-        console.log('submitNotebook has not been implemented yet');
-        // submit job here
+        requestAPI<any>('submit-job', 'POST', 
+            {
+                'api_token': this.getApiToken(),
+                'name': value.jobName,
+                'instance_type': value.instanceType,
+                'image': value.image,
+                'command': 'echo \'test\''
+            }
+        ).then((result)=>{
+            console.log(result);
+        });
         showDialog({
             title: value.jobName.length > 0 ? 'Success' : 'Failed',
             body: new SubmitJobResult(value.jobName.toString()),
@@ -141,11 +150,29 @@ export class JobInfoInput extends Widget {
         
         this.itSelector = document.createElement('select');
         let opt;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < group_info.instanceTypes.length; i++) {
             opt = document.createElement('option');
-            opt.setAttribute('value', i.toString());
-            opt.innerHTML = `it-${i}`;
+            opt.setAttribute('value', group_info.instanceTypes[i].name);
+            opt.innerHTML = `${group_info.instanceTypes[i].displayName||group_info.instanceTypes[i].name} 
+                (CPU: ${group_info.instanceTypes[i].spec['limits.cpu']} / 
+                Memory: ${group_info.instanceTypes[i].spec['limits.memory']} / 
+                GPU: ${group_info.instanceTypes[i].spec['limits.nvidia.com/gpu']})`;
             this.itSelector.appendChild(opt);
+        }
+
+        this.imageLabel = document.createElement('label');
+        this.imageLabel.innerHTML = '* Image';
+        this.imageLabel.style.marginTop = "20px";
+        
+        this.imageSelector = document.createElement('select');
+        for (let i = 0; i < group_info.images.length; i++) {
+            opt = document.createElement('option');
+            opt.setAttribute('value', group_info.images[i].name);
+            opt.innerHTML = `${group_info.images[i].displayName||group_info.images[i].name} 
+                (${group_info.images[i].spec['type'] === 'both' ? 'Universal' : group_info.images[i].spec['type'].toUpperCase()})`;
+            this.imageSelector.appendChild(opt);
+
+            //if (process.env.IMAGE_NAME === group_info.images[i].name) this.imageSelector.selectedIndex = i;
         }
         
         this.nameLabel = document.createElement('label');
@@ -159,8 +186,13 @@ export class JobInfoInput extends Widget {
         this.npLabel = document.createElement('label');
         this.npLabel.innerHTML = 'Notebook Parameters';
         this.npLabel.style.marginTop = "24px";
+
+        //this.npLink = document.createElement('link');
+        //this.npLink.innerHTML = '?';
+        //this.npLink.href = 'https://docs.primehub.io/';
         
         this.npTextArea = document.createElement('textarea');
+        this.npTextArea.placeholder = 'alpha = 0.1; ratio = 0.1';
         /*
         this.groupResourceTable = document.createElement('table');
         let tr, th;
@@ -177,9 +209,12 @@ export class JobInfoInput extends Widget {
         
         this.node.appendChild(this.itLabel);
         this.node.appendChild(this.itSelector);
+        this.node.appendChild(this.imageLabel);
+        this.node.appendChild(this.imageSelector);
         this.node.appendChild(this.nameLabel);
         this.node.appendChild(this.nameInput);
         this.node.appendChild(this.npLabel);
+        //this.node.appendChild(this.npLink);
         this.node.appendChild(this.npTextArea);
         //this.node.appendChild(this.groupResourceTable);
     }
@@ -188,6 +223,7 @@ export class JobInfoInput extends Widget {
         //let ret = this.itSelector.value + ", " + this.nameInput.value + ", " + this.npTextArea.value;
         const values: { [key: string]: string; } = {};
         values["instanceType"] = this.itSelector.value.toString();
+        values["image"] = this.imageSelector.value.toString();
         values["jobName"] = this.nameInput.value.trim();
         values["notebookParameters"] = this.npTextArea.value.toString();
 
@@ -196,9 +232,12 @@ export class JobInfoInput extends Widget {
     
     protected itLabel: HTMLLabelElement;
     protected itSelector: HTMLSelectElement;
+    protected imageLabel: HTMLLabelElement;
+    protected imageSelector: HTMLSelectElement;
     protected nameLabel: HTMLLabelElement;
     protected nameInput: HTMLInputElement;
     protected npLabel: HTMLLabelElement;
+    //protected npLink: HTMLLinkElement;
     protected npTextArea: HTMLTextAreaElement;
     //protected groupResourceTable: HTMLTableElement;
 }
@@ -212,3 +251,7 @@ export class SubmitJobResult extends Widget {
     }
     protected infoLabel: HTMLLabelElement;
 }
+
+// add tooltip/link
+// add group resource
+// dialog handling

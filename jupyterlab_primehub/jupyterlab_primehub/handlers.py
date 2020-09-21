@@ -12,6 +12,8 @@ ENV_API_ENDPOINT = 'JUPYTERLAB_DEV_API_ENDPOINT'
 NAMESPACE = "jupyterlab-primehub"
 api_endpoint = 'http://primehub-graphql.hub.svc.cluster.local/api/graphql'
 
+NOTEBOOK_DIR = None
+
 
 class ResourceHandler(APIHandler):
 
@@ -22,6 +24,7 @@ class ResourceHandler(APIHandler):
         group_id = os.environ.get('GROUP_ID')
         self.log.info('group_info with group_id: {}'.format(group_id))
         self.finish(json.dumps(group_info(api_endpoint, api_token, group_id)))
+
 
 class SubmitJobHandler(APIHandler):
 
@@ -34,8 +37,13 @@ class SubmitJobHandler(APIHandler):
         instance_type = params.get('instance_type', None)
         image = params.get('image', os.environ.get('IMAGE_NAME'))
         command = params.get('command', None)
+        path = params.get('path', None)
         self.log.info('group_info with group_id: {}'.format(group_id))
+
+        fullpath = os.path.join(NOTEBOOK_DIR, path)
+        self.log.info("notebook path: " + fullpath)
         self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command)))
+
 
 class EnvironmentHandler(APIHandler):
 
@@ -43,12 +51,14 @@ class EnvironmentHandler(APIHandler):
     def post(self):
         self.finish(json.dumps(get_env()))
 
+
 def url_pattern(web_app, endpoint, *pieces):
     base_url = web_app.settings["base_url"]
     return url_path_join(base_url, NAMESPACE, endpoint, *pieces)
 
 
 def setup_handlers(lab_app: LabApp):
+    setup_globals(lab_app)
     web_app, logger = lab_app.web_app, lab_app.log
     apply_api_endpoint_override(logger)
 
@@ -61,6 +71,14 @@ def setup_handlers(lab_app: LabApp):
     web_app.add_handlers(host_pattern, handlers)
     for h in handlers:
         logger.info('handler => {}'.format(h))
+
+
+def setup_globals(lab_app):
+    global NOTEBOOK_DIR
+    NOTEBOOK_DIR = lab_app.notebook_dir
+
+    lab_app.log.info('setup globals')
+    lab_app.log.info('\tNOTEBOOK_DIR: ' + NOTEBOOK_DIR)
 
 
 def apply_api_endpoint_override(logger):

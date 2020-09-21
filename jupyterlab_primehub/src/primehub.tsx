@@ -119,10 +119,6 @@ export class PrimeHubDropdownList extends ReactWidget {
     }
 }
 
-export interface IApiToken {
-    value: string;
-}
-
 export class ApiTokenInput extends Widget {
     constructor(apiToken: string) {
         super();

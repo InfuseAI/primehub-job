@@ -271,6 +271,20 @@
     "@lumino/widgets" "^1.11.1"
     react "~16.9.0"
 
+"@jupyterlab/mainmenu@^2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@jupyterlab/mainmenu/-/mainmenu-2.2.3.tgz#b6f2b6f86ee95d683a3b1314781e0185df10facb"
+  integrity sha512-ulio5vUDErcLAY05POBs5HBCRglb7PPIT0OuMsT9U3i6j4k2euN+N3NE/iU8iYlMhj33VEl3tgDdjZghzMW0hw==
+  dependencies:
+    "@jupyterlab/apputils" "^2.2.5"
+    "@jupyterlab/services" "^5.2.4"
+    "@jupyterlab/ui-components" "^2.2.3"
+    "@lumino/algorithm" "^1.2.3"
+    "@lumino/commands" "^1.10.1"
+    "@lumino/coreutils" "^1.4.2"
+    "@lumino/disposable" "^1.3.5"
+    "@lumino/widgets" "^1.11.1"
+
 "@jupyterlab/nbformat@^2.2.4":
   version "2.2.4"
   resolved "https://registry.yarnpkg.com/@jupyterlab/nbformat/-/nbformat-2.2.4.tgz#073403249e636ee7334fd995fa37880570f031d6"

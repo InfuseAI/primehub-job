@@ -4,7 +4,7 @@ from jupyterlab.labapp import LabApp
 from notebook.base.handlers import APIHandler
 from notebook.utils import url_path_join
 import tornado
-from .api import group_info, submit_job
+from .api import group_info, submit_job, get_env
 import os.path
 
 ENV_API_ENDPOINT = 'JUPYTERLAB_DEV_API_ENDPOINT'
@@ -37,6 +37,11 @@ class SubmitJobHandler(APIHandler):
         self.log.info('group_info with group_id: {}'.format(group_id))
         self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command)))
 
+class EnvironmentHandler(APIHandler):
+
+    @tornado.web.authenticated
+    def post(self):
+        self.finish(json.dumps(get_env()))
 
 def url_pattern(web_app, endpoint, *pieces):
     base_url = web_app.settings["base_url"]
@@ -51,7 +56,7 @@ def setup_handlers(lab_app: LabApp):
 
     handlers = [(url_pattern(web_app, 'resources'), ResourceHandler),
                 (url_pattern(web_app, 'submit-job'), SubmitJobHandler),
-                ]
+                (url_pattern(web_app, 'get-env'), EnvironmentHandler)]
 
     web_app.add_handlers(host_pattern, handlers)
     for h in handlers:

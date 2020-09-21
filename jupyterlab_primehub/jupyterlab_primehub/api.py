@@ -1,6 +1,6 @@
 import requests
 import json
-
+import os
 
 def fetch_from_graphql(api_endpoint, api_token, query, variables='{}'):
     body = {
@@ -84,4 +84,11 @@ def submit_job(api_endpoint, api_token, name, group_id, instance_type, image, co
     return {
         'status': 'success',
         'job_id': job_id
+    }
+
+def get_env():
+    return {
+        'group': os.environ.get('GROUP_NAME'),
+        'instanceType': os.environ.get('INSTANCE_TYPE'),
+        'image': os.environ.get('IMAGE_NAME')
     }

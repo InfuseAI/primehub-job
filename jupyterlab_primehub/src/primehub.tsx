@@ -51,7 +51,7 @@ export class PrimeHubDropdownList extends ReactWidget {
                 //if (result.value.jobName.length === 0)
                 //    console.log('empty job name');
                 if (result.button.accept)
-                    this.submitNotebook(result.value);
+                    this.submitNotebook(result.value, group_info.name);
             });
         });
 
@@ -70,7 +70,7 @@ export class PrimeHubDropdownList extends ReactWidget {
         });
     }
     
-    submitNotebook = (value: any): void => {
+    submitNotebook = (value: any, group: string): void => {
         requestAPI<any>('submit-job', 'POST', 
             {
                 'api_token': this.getApiToken(),
@@ -81,12 +81,19 @@ export class PrimeHubDropdownList extends ReactWidget {
             }
         ).then((result)=>{
             console.log(result);
+            let jobMsg;
+            if (result.status === 'success') {
+                jobMsg = `${value.jobName} has been submitted! Job details page: 
+                    /console/g/${group}/job/${result.job_id}`;
+            }
+            else {/* handling error conditions */}
+
+            showDialog({
+                title: result.status === 'success' ? 'Success' : 'Failed',
+                body: new SubmitJobResult(jobMsg),
+                buttons: [Dialog.okButton()]
+            }).then((result) => {});
         });
-        showDialog({
-            title: value.jobName.length > 0 ? 'Success' : 'Failed',
-            body: new SubmitJobResult(value.jobName.toString()),
-            buttons: [Dialog.okButton()]
-        }).then((result) => {});
     }
 
     updateApiToken = (token: string): void => {
@@ -144,6 +151,25 @@ export class JobInfoInput extends Widget {
         console.log('here is group info:');
         console.log(group_info);
 
+        requestAPI<any>('get-env', 'POST', {}).then((env_info)=>{
+            console.log(env_info);
+        /*
+        this.groupResourceLabel = document.createElement('label');
+        this.groupResourceLabel.innerHTML = 'Group Resources';
+        this.groupResourceLabel.style.marginTop = "20px";
+
+        this.groupResourceTable = document.createElement('table');
+        let tr, th;
+        for (let i = 0; i < 4; i++) {
+            tr = document.createElement('tr');
+            for (let j = 0; j < 3; j++) {
+                th = document.createElement('th');
+                th.innerHTML = `(${j})`;
+                tr.appendChild(th);
+            }
+            this.groupResourceTable.appendChild(tr);
+        }
+        */
         this.itLabel = document.createElement('label');
         this.itLabel.innerHTML = '* Instance Type';
         this.itLabel.style.marginTop = "20px";
@@ -158,6 +184,8 @@ export class JobInfoInput extends Widget {
                 Memory: ${group_info.instanceTypes[i].spec['limits.memory']} / 
                 GPU: ${group_info.instanceTypes[i].spec['limits.nvidia.com/gpu']})`;
             this.itSelector.appendChild(opt);
+
+            if (env_info.instanceType === group_info.instanceTypes[i].name) this.itSelector.selectedIndex = i;
         }
 
         this.imageLabel = document.createElement('label');
@@ -172,7 +200,7 @@ export class JobInfoInput extends Widget {
                 (${group_info.images[i].spec['type'] === 'both' ? 'Universal' : group_info.images[i].spec['type'].toUpperCase()})`;
             this.imageSelector.appendChild(opt);
 
-            //if (process.env.IMAGE_NAME === group_info.images[i].name) this.imageSelector.selectedIndex = i;
+            if (env_info.image === group_info.images[i].name) this.imageSelector.selectedIndex = i;
         }
         
         this.nameLabel = document.createElement('label');
@@ -193,20 +221,9 @@ export class JobInfoInput extends Widget {
         
         this.npTextArea = document.createElement('textarea');
         this.npTextArea.placeholder = 'alpha = 0.1; ratio = 0.1';
-        /*
-        this.groupResourceTable = document.createElement('table');
-        let tr, th;
-        for (let i = 0; i < 4; i++) {
-            tr = document.createElement('tr');
-            for (let j = 0; j < 3; j++) {
-                th = document.createElement('th');
-                th.innerHTML = `(${j})`;
-                tr.appendChild(th);
-            }
-            this.groupResourceTable.appendChild(tr);
-        }
-        */
         
+        //this.node.appendChild(this.groupResourceLabel);
+        //this.node.appendChild(this.groupResourceTable);
         this.node.appendChild(this.itLabel);
         this.node.appendChild(this.itSelector);
         this.node.appendChild(this.imageLabel);
@@ -216,11 +233,10 @@ export class JobInfoInput extends Widget {
         this.node.appendChild(this.npLabel);
         //this.node.appendChild(this.npLink);
         this.node.appendChild(this.npTextArea);
-        //this.node.appendChild(this.groupResourceTable);
+        });
     }
 
     getValue(): any {
-        //let ret = this.itSelector.value + ", " + this.nameInput.value + ", " + this.npTextArea.value;
         const values: { [key: string]: string; } = {};
         values["instanceType"] = this.itSelector.value.toString();
         values["image"] = this.imageSelector.value.toString();
@@ -230,6 +246,8 @@ export class JobInfoInput extends Widget {
         return values;
     }
     
+    //protected groupResourceLabel: HTMLLabelElement;
+    //protected groupResourceTable: HTMLTableElement;
     protected itLabel: HTMLLabelElement;
     protected itSelector: HTMLSelectElement;
     protected imageLabel: HTMLLabelElement;
@@ -239,19 +257,14 @@ export class JobInfoInput extends Widget {
     protected npLabel: HTMLLabelElement;
     //protected npLink: HTMLLinkElement;
     protected npTextArea: HTMLTextAreaElement;
-    //protected groupResourceTable: HTMLTableElement;
 }
 
 export class SubmitJobResult extends Widget {
-    constructor(jobName: string) {
+    constructor(jobMsg: string) {
         super();
         this.infoLabel = document.createElement('label');
-        this.infoLabel.innerHTML = jobName.length > 0 ? `jobName: ${jobName}` : 'The job name is empty';
+        this.infoLabel.innerHTML = jobMsg;
         this.node.appendChild(this.infoLabel);
     }
     protected infoLabel: HTMLLabelElement;
 }
-
-// add tooltip/link
-// add group resource
-// dialog handling

@@ -42,6 +42,7 @@ class SubmitJobHandler(APIHandler):
 
         fullpath = os.path.join(NOTEBOOK_DIR, path)
         self.log.info("notebook path: " + fullpath)
+        # TODO copy and convert it
         self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command)))
 
 

@@ -83,8 +83,8 @@ export class PrimeHubDropdownList extends ReactWidget {
             console.log(result);
             let jobMsg;
             if (result.status === 'success') {
-                jobMsg = `${value.jobName} has been submitted! Job details page: 
-                    /console/g/${group}/job/${result.job_id}`;
+                jobMsg = `${value.jobName} has been submitted! You can ` + 
+                    `<a href="/console/g/${group}/job/${result.job_id}" target="_blank"><u>view your job details here.</u></a>`;
             }
             else {/* handling error conditions */}
 
@@ -127,13 +127,18 @@ export class ApiTokenInput extends Widget {
     constructor(apiToken: string) {
         super();
 
+        this._label = document.createElement('label');
+        this._label.innerHTML = 'Please fill in your API token before you submit your notebook as a job.';
+
         this._input = document.createElement('input', {});
         this._input.classList.add('jp-mod-styled');
         this._input.type = 'text';
         this._input.value = apiToken;
+        this._input.style.marginTop = "10px";
 
         // Initialize the node
         // this.node.appendChild(div);
+        this.node.appendChild(this._label);
         this.node.appendChild(this._input);
     }
 
@@ -141,6 +146,7 @@ export class ApiTokenInput extends Widget {
         return this._input.value;
     }
 
+    protected _label: HTMLLabelElement;
     protected _input: HTMLInputElement;
 }
 

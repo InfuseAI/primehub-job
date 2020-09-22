@@ -43,11 +43,12 @@ class SubmitJobHandler(APIHandler):
         self.log.info('group_info with group_id: {}'.format(group_id))
 
         fullpath = os.path.join(NOTEBOOK_DIR, path)
+        self.log.info("relative path: " + path)
         self.log.info("notebook path: " + fullpath)
         # copy the file
         group_name = params.get('group_name', os.environ.get('GROUP_NAME'))
         time_string = datetime.now().strftime("%Y%m%d%H%M%S%f")
-        copy_file_name = path.replace('.ipynb', '') + '-' + time_string + '.ipynb'
+        copy_file_name = path.split('/').pop().replace('.ipynb', '') + '-' + time_string + '.ipynb'
         copy_file_path = os.path.join(get_group_volume_path(group_name), '.' + copy_file_name)
         output_file_path = os.path.join(get_group_volume_path(group_name), copy_file_name.replace('.ipynb', '-output'))
         copyfile(fullpath, copy_file_path)

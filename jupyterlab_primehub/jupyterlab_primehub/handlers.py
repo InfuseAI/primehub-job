@@ -5,7 +5,10 @@ from notebook.base.handlers import APIHandler
 from notebook.utils import url_path_join
 import tornado
 from .api import group_info, submit_job, get_env
+from .utils import get_group_volume_path
 import os.path
+from shutil import copyfile
+from datetime import datetime
 
 ENV_API_ENDPOINT = 'JUPYTERLAB_DEV_API_ENDPOINT'
 
@@ -36,14 +39,21 @@ class SubmitJobHandler(APIHandler):
         group_id = os.environ.get('GROUP_ID')
         instance_type = params.get('instance_type', None)
         image = params.get('image', os.environ.get('IMAGE_NAME'))
-        command = params.get('command', None)
         path = params.get('path', None)
         self.log.info('group_info with group_id: {}'.format(group_id))
 
         fullpath = os.path.join(NOTEBOOK_DIR, path)
         self.log.info("notebook path: " + fullpath)
-        # TODO copy and convert it
-        self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command)))
+        # copy the file
+        group_name = params.get('group_name', os.environ.get('GROUP_NAME'))
+        time_string = datetime.now().strftime("%Y%m%d%H%M%S%f")
+        copy_file_name = path.replace('.ipynb', '') + '-' + time_string + '.ipynb'
+        copy_file_path = os.path.join(get_group_volume_path(group_name), '.' + copy_file_name)
+        output_file_path = os.path.join(get_group_volume_path(group_name), copy_file_name.replace('.ipynb', '-output'))
+        copyfile(fullpath, copy_file_path)
+        command_str = 'jupyter nbconvert --execute {} --output {} --to html --ExecutePreprocessor.timeout=10000 && rm {}'.format(copy_file_path, output_file_path, copy_file_path)
+                
+        self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command_str)))
 
 
 class EnvironmentHandler(APIHandler):

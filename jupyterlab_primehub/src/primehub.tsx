@@ -79,7 +79,6 @@ export class PrimeHubDropdownList extends ReactWidget {
     }
     
     submitNotebook = (value: any, group: string): void => {
-        console.log("notebook path: " + this.getNodebookPath());
         requestAPI<any>('submit-job', 'POST', 
             {
                 'api_token': this.getApiToken(),
@@ -87,7 +86,7 @@ export class PrimeHubDropdownList extends ReactWidget {
                 'instance_type': value.instanceType,
                 'image': value.image,
                 'path': this.getNodebookPath(),
-                'command': 'echo \'test\''
+                'group_name': group
             }
         ).then((result)=>{
             console.log(result);

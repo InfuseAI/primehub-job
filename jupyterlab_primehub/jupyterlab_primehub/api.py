@@ -8,6 +8,12 @@ def fetch_from_graphql(api_endpoint, api_token, query, variables='{}'):
         'query': query
     }
     response = requests.post(api_endpoint, headers={'Authorization': 'Bearer ' + api_token}, data=body)
+    try:
+        result = json.loads(response.text)
+    except Exception as e:
+        print(response.text)
+        print(e)
+        raise RuntimeError('Failed to get graphql response')
     return json.loads(response.text)
 
 

@@ -27,10 +27,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
 export
 class PrimeHubExtenstion implements DocumentRegistry.IWidgetExtension<NotebookPanel, INotebookModel> {
   createNew(panel: NotebookPanel, context: DocumentRegistry.IContext<INotebookModel>): IDisposable {
-    let button = new PrimeHubDropdownList();
-    panel.toolbar.insertAfter('cellType', 'primehubFunctions', button);
+    const widget = new PrimeHubDropdownList(panel);
+    panel.toolbar.insertAfter('cellType', 'primehubFunctions', widget);
     return new DisposableDelegate(() => {
-      button.dispose();
+      widget.dispose();
     });
   }
 }

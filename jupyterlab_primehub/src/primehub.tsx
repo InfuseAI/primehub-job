@@ -12,11 +12,19 @@ import React from 'react';
 
 import { Dialog, showDialog } from '@jupyterlab/apputils';
 import { requestAPI } from './jupyterlab-primehub';
+import { NotebookPanel } from '@jupyterlab/notebook';
 
 export class PrimeHubDropdownList extends ReactWidget {
 
-    constructor() {
+    private panel: NotebookPanel;
+
+    constructor(panel: NotebookPanel) {
         super();
+        this.panel = panel;
+    }
+
+    getNodebookPath = (): string => {
+        return this.panel.context.path;
     }
 
     handleChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
@@ -77,7 +85,8 @@ export class PrimeHubDropdownList extends ReactWidget {
                 'name': value.jobName,
                 'instance_type': value.instanceType,
                 'image': value.image,
-                'command': 'echo \'test\''
+                'path': this.getNodebookPath(),
+                'group_name': group
             }
         ).then((result)=>{
             console.log(result);

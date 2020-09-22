@@ -13,6 +13,7 @@ import React from 'react';
 import { Dialog, showDialog } from '@jupyterlab/apputils';
 import { requestAPI } from './jupyterlab-primehub';
 import { NotebookPanel } from '@jupyterlab/notebook';
+import { StringInputComponent } from './components';
 
 export class PrimeHubDropdownList extends ReactWidget {
 
@@ -128,35 +129,34 @@ export class PrimeHubDropdownList extends ReactWidget {
     }
 }
 
-export interface IApiToken {
-    value: string;
-}
+export class ApiTokenInput extends ReactWidget {
 
-export class ApiTokenInput extends Widget {
     constructor(apiToken: string) {
         super();
-
-        this._label = document.createElement('label');
-        this._label.innerHTML = 'Please fill in your API token before you submit your notebook as a job.';
-
-        this._input = document.createElement('input', {});
-        this._input.classList.add('jp-mod-styled');
-        this._input.type = 'text';
-        this._input.value = apiToken;
-        this._input.style.marginTop = "10px";
-
-        // Initialize the node
-        // this.node.appendChild(div);
-        this.node.appendChild(this._label);
-        this.node.appendChild(this._input);
+        this.apiToken = apiToken;
     }
+
+    render() {
+        return (
+        <div>
+            <label>Please fill in your API token before you submit your notebook as a job.</label>
+            <br />
+            <StringInputComponent value={this.apiToken}
+                handleChange={(event) => {
+                    this.value = event.target.value;
+                }}
+            />
+        </div>
+        );
+    }
+
+    private value: string;
+    private apiToken: string;
 
     getValue(): string {
-        return this._input.value;
+        return this.value;
     }
 
-    protected _label: HTMLLabelElement;
-    protected _input: HTMLInputElement;
 }
 
 export class JobInfoInput extends Widget {

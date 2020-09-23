@@ -133,7 +133,7 @@ export class ApiTokenInput extends ReactWidget {
 
     constructor(apiToken: string) {
         super();
-        this.apiToken = apiToken;
+        this.value = apiToken;
     }
 
     render() {
@@ -141,7 +141,7 @@ export class ApiTokenInput extends ReactWidget {
         <div>
             <label>Please fill in your API token before you submit your notebook as a job.</label>
             <br />
-            <StringInputComponent value={this.apiToken}
+            <StringInputComponent value={this.value}
                 handleChange={(event) => {
                     this.value = event.target.value;
                 }}
@@ -151,7 +151,6 @@ export class ApiTokenInput extends ReactWidget {
     }
 
     private value: string;
-    private apiToken: string;
 
     getValue(): string {
         return this.value;

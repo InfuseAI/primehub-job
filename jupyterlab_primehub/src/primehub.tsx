@@ -24,8 +24,12 @@ export class PrimeHubDropdownList extends ReactWidget {
         this.panel = panel;
     }
 
-    getNodebookPath = (): string => {
+    getNotebookPath = (): string => {
         return this.panel.context.path;
+    }
+
+    getGroupVolumeName = (groupName: string): string => {
+        return groupName.toLowerCase().replace('_', '-');
     }
 
     handleChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
@@ -34,7 +38,7 @@ export class PrimeHubDropdownList extends ReactWidget {
         }
 
         if (event.target.value === "submit-job") {
-            this.showSubmitJObDialog();
+            this.showSubmitJobDialog();
         }
 
         if (event.target.value === "update-api-token") {
@@ -42,25 +46,53 @@ export class PrimeHubDropdownList extends ReactWidget {
         }
     };
 
-    showSubmitJObDialog = (): void => {
+    showSubmitJobDialog = (): void => {
 
         requestAPI<any>('resources', 'POST', 
             {
                 'api_token': this.getApiToken()
             }
         ).then((group_info)=>{
-            showDialog({
-                title: 'Submit Notebook as Job',
-                body: new JobInfoInput(group_info),
-                buttons: [Dialog.cancelButton(), Dialog.okButton({label: 'Submit'})]
-            }).then((result) => {
+            // check it's under group volume
+            const notebookPath = this.getNotebookPath();
+            const groupVolumeName = this.getGroupVolumeName(group_info.name);
+            if (groupVolumeName != notebookPath.substring(0, groupVolumeName.length)) {
+                showDialog({
+                    title: 'Error',
+                    body: 'Now, we only support the notebook under group volume. Please move your notebook into your group volume.',
+                    buttons: [Dialog.okButton()]
+                });
+                return;
+            }
+
+            // check the packages are installed correctly
+            requestAPI<any>('preflight-check', 'POST', {}).then((result)=>{
                 console.log(result);
-                if (result.button.label === "Cancel")
+                if (result['status'] == 'failed') {
+                    showDialog({
+                        title: 'Error: Python package is not found',
+                        body: result['error'],
+                        buttons: [Dialog.okButton()]
+                    });
                     return;
-                //if (result.value.jobName.length === 0)
-                //    console.log('empty job name');
-                if (result.button.accept)
-                    this.submitNotebook(result.value, group_info.name);
+                } else { // if everythings are ok, show the submit notebook as job dialog
+                    showDialog({
+                        title: 'Submit Notebook as Job',
+                        body: new JobInfoInput(group_info),
+                        buttons: [Dialog.cancelButton(), Dialog.okButton({label: 'Submit'})]
+                    }).then((result) => {
+                        console.log(result);
+                        if (result.button.label === "Cancel")
+                            return;
+                        if (result.button.accept) {
+                            // check the values really exist
+                            if (result.value)
+                                this.submitNotebook(result.value, group_info.name);
+                            else
+                                return;
+                        }
+                    });
+                }
             });
         });
 
@@ -86,8 +118,9 @@ export class PrimeHubDropdownList extends ReactWidget {
                 'name': value.jobName,
                 'instance_type': value.instanceType,
                 'image': value.image,
-                'path': this.getNodebookPath(),
-                'group_name': group
+                'path': this.getNotebookPath(),
+                'group_name': group,
+                'notebook_parameters': value.notebookParameters,
             }
         ).then((result)=>{
             console.log(result);
@@ -96,7 +129,18 @@ export class PrimeHubDropdownList extends ReactWidget {
                 jobMsg = `${value.jobName} has been submitted! You can ` + 
                     `<a href="/console/g/${group}/job/${result.job_id}" target="_blank"><u>view your job details here.</u></a>`;
             }
-            else {/* handling error conditions */}
+            else {
+                jobMsg = '';
+                if (result.error) {
+                    jobMsg = jobMsg + 'Error: ' + result.error + '\n';
+                }
+                if (result.message) {
+                    jobMsg = jobMsg + 'Message: ' + result.message + '\n';
+                }
+                if (result.server_response) {
+                    jobMsg = jobMsg + 'Server Response: ' + result.server_response + '\n';
+                }
+            }
 
             showDialog({
                 title: result.status === 'success' ? 'Success' : 'Failed',

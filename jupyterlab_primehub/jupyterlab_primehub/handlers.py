@@ -9,6 +9,8 @@ from .utils import get_group_volume_path
 import os.path
 from shutil import copyfile
 from datetime import datetime
+import importlib.util
+import sys
 
 ENV_API_ENDPOINT = 'JUPYTERLAB_DEV_API_ENDPOINT'
 
@@ -16,6 +18,40 @@ NAMESPACE = "jupyterlab-primehub"
 api_endpoint = 'http://primehub-graphql.hub.svc.cluster.local/api/graphql'
 
 NOTEBOOK_DIR = None
+
+
+class PreflightCheckHandler(APIHandler):
+
+    @tornado.web.authenticated
+    def post(self):
+        result = {
+            'status': 'success',
+            'warning': '',
+            'error': ''
+        }
+
+        package_infos = [{
+            'name': 'papermill',
+            'version': '2'
+        }]
+        for package_info in package_infos:
+            found_spec = importlib.util.find_spec(package_info['name'])
+            # cannot find package
+            if package_info['name'] not in sys.modules and found_spec is None:
+                result['status'] = 'failed'
+                result['error'] = result['error'] + \
+                                  package_info['name'] + 'is not found. Please install the package. \n'
+                self.finish(json.dumps(result))
+                return
+                
+            module = importlib.util.module_from_spec(found_spec)
+            sys.modules[package_info['name']] = module
+            found_spec.loader.exec_module(module)
+            # version is not correct
+            if module.__version__[0:len(package_info['version'])] != package_info['version']:
+                result['warning'] = result['warning'] + \
+                                    package_info['name'] + ' version is ' + module.__version__ + ' which may not be compatible with our required version ' + package_info['version'] + '.\n'
+        self.finish(json.dumps(result))
 
 
 class ResourceHandler(APIHandler):
@@ -40,19 +76,39 @@ class SubmitJobHandler(APIHandler):
         instance_type = params.get('instance_type', None)
         image = params.get('image', os.environ.get('IMAGE_NAME'))
         path = params.get('path', None)
+        notebook_parameters = params.get('notebook_parameters', '')
         self.log.info('group_info with group_id: {}'.format(group_id))
 
         fullpath = os.path.join(NOTEBOOK_DIR, path)
         self.log.info("relative path: " + path)
         self.log.info("notebook path: " + fullpath)
+
         # copy the file
         group_name = params.get('group_name', os.environ.get('GROUP_NAME'))
         time_string = datetime.now().strftime("%Y%m%d%H%M%S%f")
-        copy_file_name = path.split('/').pop().replace('.ipynb', '') + '-' + time_string + '.ipynb'
-        copy_file_path = os.path.join(get_group_volume_path(group_name), '.' + copy_file_name)
-        output_file_path = os.path.join(get_group_volume_path(group_name), copy_file_name.replace('.ipynb', '-output'))
-        copyfile(fullpath, copy_file_path)
-        command_str = 'jupyter nbconvert --execute {} --output {} --to html --ExecutePreprocessor.timeout=10000 && rm {}'.format(copy_file_path, output_file_path, copy_file_path)
+
+        nb_file_name = path.split('/').pop()
+        hidden_nb_file_name = '.' + nb_file_name.replace('.ipynb', '') + '-' + time_string + '.ipynb'
+        hidden_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name)
+        output_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name[1:].replace('.ipynb', '-output.ipynb'))
+        
+        copyfile(fullpath, hidden_nb_fullpath)
+        papermill_parameters = ''
+
+        try:
+            for parameter in notebook_parameters.replace(' ', '').split(';'):
+                if '=' in parameter:
+                    kv = parameter.split('=')
+                    papermill_parameters = papermill_parameters + ' -p {} {}'.format(kv[0], kv[1])
+        except Exception as e:
+            self.finish(json.dumps({
+                'status': 'failed',
+                'error': 'failed to parse notebook parameters', 
+                'message': str(e)
+            }))
+            return
+        
+        command_str = 'papermill {} {}{} && rm {}'.format(hidden_nb_fullpath, output_nb_fullpath, papermill_parameters, hidden_nb_fullpath)
                 
         self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command_str)))
 
@@ -78,7 +134,8 @@ def setup_handlers(lab_app: LabApp):
 
     handlers = [(url_pattern(web_app, 'resources'), ResourceHandler),
                 (url_pattern(web_app, 'submit-job'), SubmitJobHandler),
-                (url_pattern(web_app, 'get-env'), EnvironmentHandler)]
+                (url_pattern(web_app, 'get-env'), EnvironmentHandler),
+                (url_pattern(web_app, 'preflight-check'), PreflightCheckHandler)]
 
     web_app.add_handlers(host_pattern, handlers)
     for h in handlers:

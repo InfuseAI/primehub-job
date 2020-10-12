@@ -32,7 +32,7 @@ class PreflightCheckHandler(APIHandler):
 
         package_infos = [{
             'name': 'papermill',
-            'version': '2'
+            'version': '2.1'
         }]
         for package_info in package_infos:
             found_spec = importlib.util.find_spec(package_info['name'])

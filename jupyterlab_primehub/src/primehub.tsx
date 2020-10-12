@@ -65,33 +65,20 @@ export class PrimeHubDropdownList extends ReactWidget {
                 return;
             }
 
-            // check the packages are installed correctly
-            requestAPI<any>('preflight-check', 'POST', {}).then((result)=>{
+            showDialog({
+                title: 'Submit Notebook as Job',
+                body: new JobInfoInput(group_info),
+                buttons: [Dialog.cancelButton(), Dialog.okButton({label: 'Submit'})]
+            }).then((result) => {
                 console.log(result);
-                if (result['status'] == 'failed') {
-                    showDialog({
-                        title: 'Error: Python package is not found',
-                        body: result['error'],
-                        buttons: [Dialog.okButton()]
-                    });
+                if (result.button.label === "Cancel")
                     return;
-                } else { // if everythings are ok, show the submit notebook as job dialog
-                    showDialog({
-                        title: 'Submit Notebook as Job',
-                        body: new JobInfoInput(group_info),
-                        buttons: [Dialog.cancelButton(), Dialog.okButton({label: 'Submit'})]
-                    }).then((result) => {
-                        console.log(result);
-                        if (result.button.label === "Cancel")
-                            return;
-                        if (result.button.accept) {
-                            // check the values really exist
-                            if (result.value)
-                                this.submitNotebook(result.value, group_info.name);
-                            else
-                                return;
-                        }
-                    });
+                if (result.button.accept) {
+                    // check the values really exist
+                    if (result.value)
+                        this.submitNotebook(result.value, group_info.name);
+                    else
+                        return;
                 }
             });
         });

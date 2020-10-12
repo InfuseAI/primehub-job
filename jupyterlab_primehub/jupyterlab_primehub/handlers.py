@@ -20,40 +20,6 @@ api_endpoint = 'http://primehub-graphql.hub.svc.cluster.local/api/graphql'
 NOTEBOOK_DIR = None
 
 
-class PreflightCheckHandler(APIHandler):
-
-    @tornado.web.authenticated
-    def post(self):
-        result = {
-            'status': 'success',
-            'warning': '',
-            'error': ''
-        }
-
-        package_infos = [{
-            'name': 'papermill',
-            'version': '2.1'
-        }]
-        for package_info in package_infos:
-            found_spec = importlib.util.find_spec(package_info['name'])
-            # cannot find package
-            if package_info['name'] not in sys.modules and found_spec is None:
-                result['status'] = 'failed'
-                result['error'] = result['error'] + \
-                                  package_info['name'] + 'is not found. Please install the package. \n'
-                self.finish(json.dumps(result))
-                return
-                
-            module = importlib.util.module_from_spec(found_spec)
-            sys.modules[package_info['name']] = module
-            found_spec.loader.exec_module(module)
-            # version is not correct
-            if module.__version__[0:len(package_info['version'])] != package_info['version']:
-                result['warning'] = result['warning'] + \
-                                    package_info['name'] + ' version is ' + module.__version__ + ' which may not be compatible with our required version ' + package_info['version'] + '.\n'
-        self.finish(json.dumps(result))
-
-
 class ResourceHandler(APIHandler):
 
     @tornado.web.authenticated
@@ -134,8 +100,7 @@ def setup_handlers(lab_app: LabApp):
 
     handlers = [(url_pattern(web_app, 'resources'), ResourceHandler),
                 (url_pattern(web_app, 'submit-job'), SubmitJobHandler),
-                (url_pattern(web_app, 'get-env'), EnvironmentHandler),
-                (url_pattern(web_app, 'preflight-check'), PreflightCheckHandler)]
+                (url_pattern(web_app, 'get-env'), EnvironmentHandler)]
 
     web_app.add_handlers(host_pattern, handlers)
     for h in handlers:

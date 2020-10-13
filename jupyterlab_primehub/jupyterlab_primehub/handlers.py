@@ -9,6 +9,8 @@ from .utils import get_group_volume_path
 import os.path
 from shutil import copyfile
 from datetime import datetime
+import importlib.util
+import sys
 
 ENV_API_ENDPOINT = 'JUPYTERLAB_DEV_API_ENDPOINT'
 
@@ -40,19 +42,39 @@ class SubmitJobHandler(APIHandler):
         instance_type = params.get('instance_type', None)
         image = params.get('image', os.environ.get('IMAGE_NAME'))
         path = params.get('path', None)
+        notebook_parameters = params.get('notebook_parameters', '')
         self.log.info('group_info with group_id: {}'.format(group_id))
 
         fullpath = os.path.join(NOTEBOOK_DIR, path)
         self.log.info("relative path: " + path)
         self.log.info("notebook path: " + fullpath)
+
         # copy the file
         group_name = params.get('group_name', os.environ.get('GROUP_NAME'))
         time_string = datetime.now().strftime("%Y%m%d%H%M%S%f")
-        copy_file_name = path.split('/').pop().replace('.ipynb', '') + '-' + time_string + '.ipynb'
-        copy_file_path = os.path.join(get_group_volume_path(group_name), '.' + copy_file_name)
-        output_file_path = os.path.join(get_group_volume_path(group_name), copy_file_name.replace('.ipynb', '-output'))
-        copyfile(fullpath, copy_file_path)
-        command_str = 'jupyter nbconvert --execute {} --output {} --to html --ExecutePreprocessor.timeout=10000 && rm {}'.format(copy_file_path, output_file_path, copy_file_path)
+
+        nb_file_name = path.split('/').pop()
+        hidden_nb_file_name = '.' + nb_file_name.replace('.ipynb', '') + '-' + time_string + '.ipynb'
+        hidden_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name)
+        output_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name[1:].replace('.ipynb', '-output.ipynb'))
+        
+        copyfile(fullpath, hidden_nb_fullpath)
+        papermill_parameters = ''
+
+        try:
+            for parameter in notebook_parameters.replace(' ', '').split(';'):
+                if '=' in parameter:
+                    kv = parameter.split('=')
+                    papermill_parameters = papermill_parameters + ' -p {} {}'.format(kv[0], kv[1])
+        except Exception as e:
+            self.finish(json.dumps({
+                'status': 'failed',
+                'error': 'failed to parse notebook parameters', 
+                'message': str(e)
+            }))
+            return
+        
+        command_str = 'papermill {} {}{} && rm {}'.format(hidden_nb_fullpath, output_nb_fullpath, papermill_parameters, hidden_nb_fullpath)
                 
         self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command_str)))
 

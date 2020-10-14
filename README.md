@@ -1,4 +1,4 @@
-This is still in the Pre-Alpha stage.
+This is still in the Alpha stage.
 
 ## PrimeHub Job
 

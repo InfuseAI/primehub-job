@@ -1,8 +1,6 @@
 # jupyterlab_primehub
 
-primehub
-
-
+Jupyterlab extension for PrimeHub
 
 ## Requirements
 
@@ -12,6 +10,8 @@ primehub
 
 ```bash
 jupyter labextension install @infuseai/jupyterlab-primehub
+pip install jupyterlab_primehub
+jupyter serverextension enable jupyterlab_primehub
 ```
 
 ## Contributing

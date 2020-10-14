@@ -78,3 +78,9 @@ jlpm run build
 
 After updatd, refresh browser and see the changes.
 
+### Publish
+
+```
+yarn login
+yarn publish --access public
+```

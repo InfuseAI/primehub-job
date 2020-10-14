@@ -55,9 +55,9 @@ with open("README.md", "r") as fh:
 setup_args = dict(
     name=name,
     version=version,
-    url="https://github.com/my_name/myextension",
-    author="qrtt1",
-    description="A JupyterLab extension.",
+    url="https://github.com/InfuseAI/primehub-job",
+    author="InfuseAI",
+    description="A JupyterLab server extension",
     long_description= long_description,
     long_description_content_type="text/markdown",
     cmdclass= cmdclass,

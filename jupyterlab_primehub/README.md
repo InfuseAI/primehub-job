@@ -1,7 +1,5 @@
 # jupyterlab_primehub
 
-![Github Actions Status](https://github.com/my_name/myextension/workflows/Build/badge.svg)
-
 primehub
 
 
@@ -13,7 +11,7 @@ primehub
 ## Install
 
 ```bash
-jupyter labextension install jupyterlab-primehub
+jupyter labextension install @infuseai/jupyterlab-primehub
 ```
 
 ## Contributing
@@ -55,5 +53,5 @@ Now every change will be built locally and bundled into JupyterLab. Be sure to r
 
 ```bash
 
-jupyter labextension uninstall jupyterlab-primehub
+jupyter labextension uninstall @infuseai/jupyterlab-primehub
 ```

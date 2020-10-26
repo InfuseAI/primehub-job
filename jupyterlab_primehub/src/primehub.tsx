@@ -215,37 +215,50 @@ export class JobInfoInput extends Widget {
             this.groupResourceTable.appendChild(tr);
         }
         */
+        let values: { [key: string]: number; } = {};
+        let keys, opt;
+
         this.itLabel = document.createElement('label');
         this.itLabel.innerHTML = '* Instance Type';
         this.itLabel.style.marginTop = "20px";
         
+        for (let i = 0; i < group_info.instanceTypes.length; i++)
+            values[group_info.instanceTypes[i].displayName||group_info.instanceTypes[i].name] = i;
+        keys = Object.keys(values);
+        keys.sort();
+
         this.itSelector = document.createElement('select');
-        let opt;
-        for (let i = 0; i < group_info.instanceTypes.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
             opt = document.createElement('option');
-            opt.setAttribute('value', group_info.instanceTypes[i].name);
-            opt.innerHTML = `${group_info.instanceTypes[i].displayName||group_info.instanceTypes[i].name} 
-                (CPU: ${group_info.instanceTypes[i].spec['limits.cpu']} / 
-                Memory: ${group_info.instanceTypes[i].spec['limits.memory']} / 
-                GPU: ${group_info.instanceTypes[i].spec['limits.nvidia.com/gpu']})`;
+            opt.setAttribute('value', group_info.instanceTypes[values[keys[i]]].name);
+            opt.innerHTML = `${group_info.instanceTypes[values[keys[i]]].displayName||group_info.instanceTypes[values[keys[i]]].name} 
+                (CPU: ${group_info.instanceTypes[values[keys[i]]].spec['limits.cpu']} / 
+                Memory: ${group_info.instanceTypes[values[keys[i]]].spec['limits.memory']} / 
+                GPU: ${group_info.instanceTypes[values[keys[i]]].spec['limits.nvidia.com/gpu']})`;
             this.itSelector.appendChild(opt);
 
-            if (env_info.instanceType === group_info.instanceTypes[i].name) this.itSelector.selectedIndex = i;
+            if (env_info.instanceType === group_info.instanceTypes[values[keys[i]]].name) this.itSelector.selectedIndex = i;
         }
 
         this.imageLabel = document.createElement('label');
         this.imageLabel.innerHTML = '* Image';
         this.imageLabel.style.marginTop = "20px";
         
+        values = {};
+        for (let i = 0; i < group_info.images.length; i++)
+            values[group_info.images[i].displayName||group_info.images[i].name] = i;
+        keys = Object.keys(values);
+        keys.sort();
+
         this.imageSelector = document.createElement('select');
-        for (let i = 0; i < group_info.images.length; i++) {
+        for (let i = 0; i < keys.length; i++) {
             opt = document.createElement('option');
-            opt.setAttribute('value', group_info.images[i].name);
-            opt.innerHTML = `${group_info.images[i].displayName||group_info.images[i].name} 
-                (${group_info.images[i].spec['type'] === 'both' ? 'Universal' : group_info.images[i].spec['type'].toUpperCase()})`;
+            opt.setAttribute('value', group_info.images[values[keys[i]]].name);
+            opt.innerHTML = `${group_info.images[values[keys[i]]].displayName||group_info.images[values[keys[i]]].name} 
+                (${group_info.images[values[keys[i]]].spec['type'] === 'both' ? 'Universal' : group_info.images[values[keys[i]]].spec['type'].toUpperCase()})`;
             this.imageSelector.appendChild(opt);
 
-            if (env_info.image === group_info.images[i].name) this.imageSelector.selectedIndex = i;
+            if (env_info.image === group_info.images[values[keys[i]]].name) this.imageSelector.selectedIndex = i;
         }
         
         this.nameLabel = document.createElement('label');

@@ -89,7 +89,7 @@ export class PrimeHubDropdownList extends ReactWidget {
             if (!this.functionSet.job) {
                 showDialog({
                     title: 'Warning',
-                    body: 'This is enterprise PrimeHub function. Please upgrade your PrimeHub to the enterprise version.',
+                    body: 'This feature is only enabled for PrimeHub Enterprise Edition (EE) users. To use this feature, please upgrade to PrimeHub EE.',
                     buttons: [Dialog.okButton()]
                 });
                 return;

@@ -77,10 +77,10 @@ export class PrimeHubDropdownList extends ReactWidget {
                     // check the values really exist
                     if (!result.value.jobName.trim().length) {
                         showDialog({
-                            title: 'Failed',
-                            body: new SubmitJobResult('The job name cannot be empty.'),
+                            title: 'Error',
+                            body: 'The job name cannot be empty.',
                             buttons: [Dialog.okButton()]
-                        }).then((result) => {});
+                        });
                     }
                     else
                         this.submitNotebook(result.value, group_info.name);

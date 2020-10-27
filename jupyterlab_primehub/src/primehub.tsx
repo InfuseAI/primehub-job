@@ -75,10 +75,15 @@ export class PrimeHubDropdownList extends ReactWidget {
                     return;
                 if (result.button.accept) {
                     // check the values really exist
-                    if (result.value)
-                        this.submitNotebook(result.value, group_info.name);
+                    if (!result.value.jobName.trim().length) {
+                        showDialog({
+                            title: 'Failed',
+                            body: new SubmitJobResult('The job name cannot be empty.'),
+                            buttons: [Dialog.okButton()]
+                        }).then((result) => {});
+                    }
                     else
-                        return;
+                        this.submitNotebook(result.value, group_info.name);
                 }
             });
         });

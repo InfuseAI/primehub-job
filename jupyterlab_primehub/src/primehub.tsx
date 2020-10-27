@@ -18,10 +18,22 @@ import { StringInputComponent } from './components';
 export class PrimeHubDropdownList extends ReactWidget {
 
     private panel: NotebookPanel;
+    private functionSet: any;
 
     constructor(panel: NotebookPanel) {
         super();
         this.panel = panel;
+        this.functionSet = null;
+        this.getFunctionSet();
+    }
+
+    getFunctionSet = (): void => {
+        requestAPI<any>('check-function', 'POST', 
+        {
+            'api_token': this.getApiToken()
+        }).then((functionSet)=>{
+            this.functionSet = functionSet;
+        });
     }
 
     getNotebookPath = (): string => {
@@ -53,6 +65,15 @@ export class PrimeHubDropdownList extends ReactWidget {
                 'api_token': this.getApiToken()
             }
         ).then((group_info)=>{
+            // check we get correct group_info
+            if (!group_info.name) {
+                showDialog({
+                    title: 'Error',
+                    body: 'Cannot get the information. Please check your API TOKEN is correct.',
+                    buttons: [Dialog.okButton()]
+                });
+                return;
+            }
             // check it's under group volume
             const notebookPath = this.getNotebookPath();
             const groupVolumeName = this.getGroupVolumeName(group_info.name);
@@ -60,6 +81,15 @@ export class PrimeHubDropdownList extends ReactWidget {
                 showDialog({
                     title: 'Error',
                     body: 'Now, we only support the notebook under group volume. Please move your notebook into your group volume.',
+                    buttons: [Dialog.okButton()]
+                });
+                return;
+            }
+            // check we support the function
+            if (!this.functionSet.job) {
+                showDialog({
+                    title: 'Warning',
+                    body: 'This feature is only enabled for PrimeHub Enterprise Edition (EE) users. To use this feature, please upgrade to PrimeHub EE.',
                     buttons: [Dialog.okButton()]
                 });
                 return;
@@ -139,6 +169,7 @@ export class PrimeHubDropdownList extends ReactWidget {
 
     updateApiToken = (token: string): void => {
         localStorage.setItem('PrimeHub::API_TOKEN', token || "");
+        this.getFunctionSet();
     }
 
     getApiToken = (): string => {

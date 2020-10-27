@@ -16,6 +16,21 @@ def fetch_from_graphql(api_endpoint, api_token, query, variables='{}'):
         raise RuntimeError('Failed to get graphql response')
     return json.loads(response.text)
 
+def check_function_set(api_endpoint, api_token):
+    function_set = {
+        'job': False
+    }
+    # check job function
+    query = '''{
+        phJobs {
+            id
+        }
+    }'''
+    result = fetch_from_graphql(api_endpoint, api_token, query)
+    if "data" in result and "error" not in result:
+        function_set['job'] = True
+    
+    return function_set
 
 def group_info(api_endpoint, api_token, group_id):
     query = '''{

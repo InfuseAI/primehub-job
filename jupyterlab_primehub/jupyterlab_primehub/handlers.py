@@ -4,7 +4,7 @@ from jupyterlab.labapp import LabApp
 from notebook.base.handlers import APIHandler
 from notebook.utils import url_path_join
 import tornado
-from .api import group_info, submit_job, get_env
+from .api import group_info, submit_job, get_env, check_function_set
 from .utils import get_group_volume_path
 import os.path
 from shutil import copyfile
@@ -18,6 +18,16 @@ NAMESPACE = "jupyterlab-primehub"
 api_endpoint = 'http://primehub-graphql.hub.svc.cluster.local/api/graphql'
 
 NOTEBOOK_DIR = None
+
+
+class CheckFunctionSetHandler(APIHandler):
+    @tornado.web.authenticated
+    def post(self):
+        params = self.get_json_body()
+        api_token = params.get('api_token', None)
+        function_set = check_function_set(api_endpoint, api_token)
+        self.log.info(function_set)
+        self.finish(json.dumps(function_set))
 
 
 class ResourceHandler(APIHandler):
@@ -98,7 +108,8 @@ def setup_handlers(lab_app: LabApp):
 
     host_pattern = ".*$"
 
-    handlers = [(url_pattern(web_app, 'resources'), ResourceHandler),
+    handlers = [(url_pattern(web_app, 'check-function'), CheckFunctionSetHandler),
+                (url_pattern(web_app, 'resources'), ResourceHandler),
                 (url_pattern(web_app, 'submit-job'), SubmitJobHandler),
                 (url_pattern(web_app, 'get-env'), EnvironmentHandler)]
 

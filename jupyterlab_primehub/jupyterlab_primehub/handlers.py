@@ -15,7 +15,7 @@ import sys
 ENV_API_ENDPOINT = 'JUPYTERLAB_DEV_API_ENDPOINT'
 
 NAMESPACE = "jupyterlab-primehub"
-api_endpoint = 'http://primehub-graphql.hub.svc.cluster.local/api/graphql'
+api_endpoint = 'http://primehub-graphql/api/graphql'
 
 NOTEBOOK_DIR = None
 

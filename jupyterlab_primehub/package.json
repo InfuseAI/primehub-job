@@ -1,6 +1,6 @@
 {
   "name": "@infuseai/jupyterlab-primehub",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "PrimeHub extension in jupyterlab",
   "keywords": [
     "jupyter",

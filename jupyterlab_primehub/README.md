@@ -25,7 +25,7 @@ pip uninstall jupyterlab_primehub
 ## Build the Docker Image
 
 Example docker file:
-```
+```dockerfile
 FROM jupyter/base-notebook
 ARG PRIMEHUB_EXTENSION_VERSION="0.1.2"
 USER $NB_UID
@@ -50,13 +50,13 @@ RUN pip install --no-cache-dir jupyterlab_primehub~=$PRIMEHUB_EXTENSION_VERSION 
     ```
 
 - If the `jupyter-client` version is too old, you may see this error:
-    ```
+    ```python
     from jupyter_client import AsyncKernelManager
     ImportError: cannot import name ‘AsyncKernelManager’
     ```
 
 - If the `ipykernel` version is too old, you may see this error:
-    ```
+    ```python
     AttributeError: 'AsyncKernelManager' object has no attribute ‘cleanup_resources'
     ```
 

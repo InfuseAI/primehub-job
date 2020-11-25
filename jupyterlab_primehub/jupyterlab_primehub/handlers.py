@@ -64,6 +64,7 @@ class SubmitJobHandler(APIHandler):
         time_string = datetime.now().strftime("%Y%m%d%H%M%S%f")
 
         nb_file_name = path.split('/').pop()
+        nb_directory_path = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''))
         hidden_nb_file_name = '.' + nb_file_name.replace('.ipynb', '') + '-' + time_string + '.ipynb'
         hidden_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name)
         output_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name[1:].replace('.ipynb', '-output.ipynb'))
@@ -84,8 +85,8 @@ class SubmitJobHandler(APIHandler):
             }))
             return
         
-        command_str = 'papermill {} {}{} && rm {}'.format(hidden_nb_fullpath, output_nb_fullpath, papermill_parameters, hidden_nb_fullpath)
-                
+        command_str = 'cd {} && papermill {} {}{} && rm {}'.format(nb_directory_path, hidden_nb_fullpath, output_nb_fullpath, papermill_parameters, hidden_nb_fullpath)
+
         self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command_str)))
 
 

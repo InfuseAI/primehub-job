@@ -26,12 +26,13 @@ pip uninstall jupyterlab_primehub
 
 Example docker file:
 ```
-FROM jupyter/base-notebook:latest
-USER root
-RUN jupyter labextension install @infuseai/jupyterlab-primehub
-RUN pip install jupyterlab_primehub
-RUN jupyter serverextension enable jupyterlab_primehub
-USER $NB_USER
+FROM jupyter/base-notebook
+ARG PRIMEHUB_EXTENSION_VERSION="0.1.2"
+USER $NB_UID
+RUN pip install --no-cache-dir jupyterlab_primehub~=$PRIMEHUB_EXTENSION_VERSION && \
+    jupyter serverextension enable jupyterlab_primehub && \
+    jupyter labextension install @infuseai/jupyterlab-primehub@~v$PRIMEHUB_EXTENSION_VERSION && \
+    jupyter-lab build
 ```
 
 ## Troubleshooting

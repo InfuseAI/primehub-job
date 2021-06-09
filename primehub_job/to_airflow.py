@@ -43,7 +43,9 @@ for key in data_in_shelve:
     if key != 'os_env':
         globals()[key] = data_in_shelve[key]
 
-result = {}.__wrapped__(*args, **kwargs)
+{}
+
+result = {}(*args, **kwargs)
 data_in_shelve.close()
 
 import os.path
@@ -61,14 +63,10 @@ except:
 def __check_and_install_primehub_job_code(code_folder):
     check_and_install_code = \
 """
-try:
-    import primehub_job
-except:
-    import sys
-    import subprocess
-    subprocess.check_call([sys.executable, '-m', 'pip', 'uninstall', 'primehub_job'])
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'airflow'])
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'git+https://github.com/InfuseAI/primehub-job.git@feature/ch17931/suggestion-for-integrations-for-airflow'])
+import sys
+import subprocess
+subprocess.check_call([sys.executable, '-m', 'pip', 'uninstall', '-y', 'primehub_job'])
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'git+https://github.com/InfuseAI/primehub-job.git@feature/ch17931/suggestion-for-integrations-for-airflow'])
 """
     with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
         tmp.writelines(check_and_install_code)
@@ -176,9 +174,11 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             user_folder = __get_phjob_user_folder_path()
             if not os.path.exists(user_folder):
                 os.makedirs(user_folder)
+                os.chmod(user_folder, 0o777)
             time_string = datetime.now().strftime("%Y%m%d%H%M%S%f")
             code_folder = os.path.join(user_folder, time_string)
             os.makedirs(code_folder)
+            os.chmod(code_folder, 0o777)
             
             shelve.Pickler = CloudPickler
             data_for_shelve = shelve.open(os.path.join(code_folder, 'shelve_in.dat'))
@@ -187,13 +187,15 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             global_keys = func.__globals__.keys()
             global_vars = func.__globals__
             for key in global_keys:
-                if not key.startswith('_') and not key in ['In', 'Out', 'exit', 'quit', 'get_ipython']:
-                    if isinstance(global_vars[key], ModuleType) or type(global_vars[key]).__name__ in ['module', 'type', 'function']:
+                if not key.startswith('_') and not key in ['In', 'Out', 'exit', 'quit', 'get_ipython', func.__name__]:
+                    if (isinstance(global_vars[key], ModuleType) or type(global_vars[key]).__name__ in ['module', 'type', 'function']) \
+                        and ((hasattr(global_vars[key], '__module__') and 'airflow' not in global_vars[key].__module__ and 'unusual_prefix' not in global_vars[key].__module__) or not hasattr(global_vars[key], '__module__')):
                         data_for_shelve[key] = global_vars[key]
             data_for_shelve['os_env'] = os.environ
             data_for_shelve.close()
             
-            execute_code = CODE_TO_INJECT.format(func.__name__, code_folder)
+            the_code_text = 'def ' + inspect.getsource(func).split('def ')[1]
+            execute_code = CODE_TO_INJECT.format(the_code_text, func.__name__, code_folder)
             
             with open(os.path.join(code_folder, 'main.py'), 'w') as tmp:
                 tmp.writelines(execute_code)

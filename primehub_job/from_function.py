@@ -70,7 +70,8 @@ try:
 except:
     import sys
     import subprocess
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'primehub_job'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'uninstall', 'primehub_job'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'git+https://github.com/InfuseAI/primehub-job.git@feature/ch17931/suggestion-for-integrations-for-airflow'])
 """
     with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
         tmp.writelines(check_and_install_code)

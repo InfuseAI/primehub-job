@@ -67,6 +67,7 @@ except:
     import sys
     import subprocess
     subprocess.check_call([sys.executable, '-m', 'pip', 'uninstall', 'primehub_job'])
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'airflow'])
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U', '--user', 'git+https://github.com/InfuseAI/primehub-job.git@feature/ch17931/suggestion-for-integrations-for-airflow'])
 """
     with open(os.path.join(code_folder, 'check_and_install_primehub_job.py'), 'w') as tmp:
@@ -183,6 +184,12 @@ def submit_phjob(name='job_submit_from_jupyter', instance_type=os.environ['INSTA
             data_for_shelve = shelve.open(os.path.join(code_folder, 'shelve_in.dat'))
             data_for_shelve['args'] = args
             data_for_shelve['kwargs'] = kwargs
+            global_keys = func.__globals__.keys()
+            global_vars = func.__globals__
+            for key in global_keys:
+                if not key.startswith('_') and not key in ['In', 'Out', 'exit', 'quit', 'get_ipython']:
+                    if isinstance(global_vars[key], ModuleType) or type(global_vars[key]).__name__ in ['module', 'type', 'function']:
+                        data_for_shelve[key] = global_vars[key]
             data_for_shelve['os_env'] = os.environ
             data_for_shelve.close()
             

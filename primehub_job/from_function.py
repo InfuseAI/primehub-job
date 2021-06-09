@@ -31,10 +31,6 @@ def __check_env_requirements(keys):
 
 CODE_TO_INJECT = \
 """
-import dbm
-from dbm import dumb
-dbm._defaultmod = dumb
-
 import shelve
 import os
 data_in_shelve = shelve.open('shelve_in.dat')

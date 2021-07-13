@@ -200,13 +200,16 @@ export class ApiTokenInput extends ReactWidget {
 
     constructor(apiToken: string) {
         super();
+        this.link = `/console/g/${localStorage.getItem('currentGroupName')}/api-token`;
         this.value = apiToken;
     }
 
     render() {
         return (
         <div>
-            <label>Please fill in your API token before you submit your notebook as a job.</label>
+            <label>Please fill in your API Token before you submit your notebook as a job.</label>
+            <br />
+            <label>Visit <a href={this.link} target="_blank"><u>here</u></a> to access your API Token.</label>
             <br />
             <StringInputComponent value={this.value}
                 handleChange={(event) => {
@@ -217,6 +220,7 @@ export class ApiTokenInput extends ReactWidget {
         );
     }
 
+    private link: string;
     private value: string;
 
     getValue(): string {

@@ -27,7 +27,7 @@ pip uninstall jupyterlab_primehub
 Example docker file:
 ```dockerfile
 FROM jupyter/base-notebook
-ARG PRIMEHUB_EXTENSION_VERSION="0.1.2"
+ARG PRIMEHUB_EXTENSION_VERSION="0.1.3"
 USER $NB_UID
 RUN pip install --no-cache-dir jupyterlab_primehub~=$PRIMEHUB_EXTENSION_VERSION && \
     jupyter serverextension enable jupyterlab_primehub && \

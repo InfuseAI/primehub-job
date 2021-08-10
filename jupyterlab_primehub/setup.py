@@ -65,7 +65,7 @@ setup_args = dict(
     install_requires=[
         "jupyterlab~=2.0",
         "primehub-job",
-        "papermill~=2.1.0"
+        "papermill~=2.3.0"
     ],
     zip_safe=False,
     include_package_data=True,

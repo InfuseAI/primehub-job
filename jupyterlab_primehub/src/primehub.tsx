@@ -56,6 +56,10 @@ export class PrimeHubDropdownList extends ReactWidget {
         if (event.target.value === "update-api-token") {
             this.showUpdateApiTokenDialog();
         }
+
+        if (event.target.value === "make-share-url") {
+            this.showShareURLDialog();
+        }
     };
 
     showSubmitJobDialog = (): void => {
@@ -132,6 +136,15 @@ export class PrimeHubDropdownList extends ReactWidget {
             }
         });
     }
+
+    showShareURLDialog = (): void => {
+        // make-share-url
+        requestAPI<any>('make-share-url', 'POST', {
+            'path': this.getNotebookPath(),
+        }).then((result) => {
+            console.log(result);
+        });
+    }
     
     submitNotebook = (value: any, group: string): void => {
         requestAPI<any>('submit-job', 'POST', 
@@ -191,6 +204,7 @@ export class PrimeHubDropdownList extends ReactWidget {
                 <option value="-">PrimeHub</option>
                 <option value="submit-job">Submit Notebook as Job</option>
                 <option value="update-api-token">API Token</option>
+                <option value="make-share-url">Make share URL</option>
             </HTMLSelect>
         );
     }

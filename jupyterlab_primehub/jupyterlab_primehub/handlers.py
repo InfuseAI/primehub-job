@@ -68,7 +68,7 @@ class SubmitJobHandler(APIHandler):
         hidden_nb_file_name = '.' + nb_file_name.replace('.ipynb', '') + '-' + time_string + '.ipynb'
         hidden_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name)
         output_nb_fullpath = os.path.join(NOTEBOOK_DIR, path.replace(nb_file_name, ''), hidden_nb_file_name[1:].replace('.ipynb', '-output.ipynb'))
-        
+
         copyfile(fullpath, hidden_nb_fullpath)
         papermill_parameters = ''
 
@@ -80,15 +80,29 @@ class SubmitJobHandler(APIHandler):
         except Exception as e:
             self.finish(json.dumps({
                 'status': 'failed',
-                'error': 'failed to parse notebook parameters', 
+                'error': 'failed to parse notebook parameters',
                 'message': str(e)
             }))
             return
-        
+
         command_str = 'cd {} && papermill {} {}{} && rm {}'.format(nb_directory_path, hidden_nb_fullpath, output_nb_fullpath, papermill_parameters, hidden_nb_fullpath)
 
         self.finish(json.dumps(submit_job(api_endpoint, api_token, name, group_id, instance_type, image, command_str)))
 
+
+class ShareURL(APIHandler):
+
+    @tornado.web.authenticated
+    def post(self):
+        params = self.get_json_body()
+        path = params.get('path', None)
+        notebook_parameters = params.get('notebook_parameters', '')
+        fullpath = os.path.join(NOTEBOOK_DIR, path)
+        self.log.info("relative path: " + path)
+        self.log.info("notebook path: " + fullpath)
+        nb_file_name = path.split('/').pop()
+        # TODO invoke nbconvert
+        self.finish(json.dumps(dict(nb_file_name=nb_file_name, fullpath=fullpath)))
 
 class EnvironmentHandler(APIHandler):
 
@@ -112,7 +126,8 @@ def setup_handlers(lab_app: LabApp):
     handlers = [(url_pattern(web_app, 'check-function'), CheckFunctionSetHandler),
                 (url_pattern(web_app, 'resources'), ResourceHandler),
                 (url_pattern(web_app, 'submit-job'), SubmitJobHandler),
-                (url_pattern(web_app, 'get-env'), EnvironmentHandler)]
+                (url_pattern(web_app, 'get-env'), EnvironmentHandler),
+                (url_pattern(web_app, 'make-share-url'), ShareURL)]
 
     web_app.add_handlers(host_pattern, handlers)
     for h in handlers:
